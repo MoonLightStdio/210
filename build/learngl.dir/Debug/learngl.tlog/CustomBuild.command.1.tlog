@@ -1,0 +1,10 @@
+^C:\图形\LEARNOPENGL\210\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/图形/learnopengl/210 -BC:/图形/learnopengl/210/build --check-stamp-file C:/图形/learnopengl/210/build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
