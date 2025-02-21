@@ -10,9 +10,29 @@
 
 #include "shader.h"
 #include "stb_image.h"
+#include "camera.h"
+
+Camera camera(glm::vec3(0.0f,0.0f,3.0f));
+
+//时间
+float deltaTime=0.0f;
+float lastFrame=0.0f;
+//鼠标位置，设置初始值为（400，300）
+float lastX=400,lastY=300;
+
+//角度
+float yaw=0,pitch=0;
+
+//检查是否第一次进入
+float firstMouse=true;
+
+//滚轮
+float fov=45.0f;
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
+void mouse_callback(GLFWwindow* window,double xpos,double ypos);
+void scroll_callback(GLFWwindow* window,double xoffset,double yoffset);
 int main(int argc, char *argv[])
 {
     glfwInit();
@@ -32,6 +52,8 @@ int main(int argc, char *argv[])
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window,mouse_callback);
+    glfwSetScrollCallback(window,scroll_callback);
 //初始化glad
 if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
         std::cout << "Failed to initialize GLAD" << std::endl;
@@ -166,6 +188,9 @@ if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
     glEnableVertexAttribArray(1);
 
 
+//设置光标
+    glfwSetInputMode(window,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
+
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
@@ -181,6 +206,11 @@ if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
         
         ourShader.use();
 
+
+        //摄像机
+    glm::mat4 view=camera.GetViewMatrix();
+    ourShader.setMat4("view",view);
+
             //glm
     glm::mat4 trans;
     trans=glm::translate(trans,glm::vec3(0.5f,-0.5f,0.0f));
@@ -189,19 +219,10 @@ if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
 
     model=glm::rotate(model,(float)glfwGetTime()*glm::radians(50.0f),glm::vec3(0.5f,1.0f,0.0f));
     */
-    glm::mat4 view;
-    view=glm::translate(view,glm::vec3(0.0f,0.0f,-3.0f));
     glm::mat4 projection;
-    projection=glm::perspective(glm::radians(45.0f),(float)800/600,0.1f,100.0f);
+    projection=glm::perspective(glm::radians(camera.Zoom),(float)800/600,0.1f,100.0f);
         /* code */
-
-        unsigned int transformLoc=glGetUniformLocation(ourShader.ID,"transform");
-        glUniformMatrix4fv(transformLoc,1,GL_FALSE,glm::value_ptr(trans));
-        
-        unsigned int viewLoc=glGetUniformLocation(ourShader.ID,"view");
-        glUniformMatrix4fv(viewLoc,1,GL_FALSE,glm::value_ptr(view));
-        unsigned int projectionLoc=glGetUniformLocation(ourShader.ID,"projection");
-        glUniformMatrix4fv(projectionLoc,1,GL_FALSE,glm::value_ptr(projection));
+        ourShader.setMat4("projection",projection);
         glBindVertexArray(VAO);
         //glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,0);
 
@@ -216,6 +237,9 @@ if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
         glDrawArrays(GL_TRIANGLES,0,36);
 
         }
+        float currentTime=glfwGetTime();
+        deltaTime=currentTime-lastFrame;
+        lastFrame=currentTime;
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -232,6 +256,37 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 
 void processInput(GLFWwindow *window)
 {
-    if(glfwGetKey(window,GLFW_KEY_ESCAPE)==GLFW_PRESS)
-        glfwSetWindowShouldClose(window,true);
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    glfwSetWindowShouldClose(window, true);
+
+if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    camera.ProcessKeyboard(FORWARD, deltaTime);
+if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    camera.ProcessKeyboard(BACKWARD, deltaTime);
+if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    camera.ProcessKeyboard(LEFT, deltaTime);
+if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    camera.ProcessKeyboard(RIGHT, deltaTime);
+}
+
+void mouse_callback(GLFWwindow *window, double xpos, double ypos)
+{
+    if(firstMouse)
+    {
+        lastX=xpos;
+        lastY=ypos;
+        firstMouse=false;
+    }
+    float xoffset=xpos-lastX;
+    float yoffset=lastY-ypos;
+
+    lastX=xpos;
+    lastY=ypos;
+
+    camera.ProcessMouseMovement(xoffset,yoffset);
+}
+
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
+{
+    camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
